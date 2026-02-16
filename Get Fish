@@ -1,208 +1,113 @@
--- [REYFIELD MENU + AUTO FISHING + ANTI-KICK + TELEPORT] -- 
--- [!] HANYA UNTUK PENEST REAGENT.CODES -- 
--- [!] DIKEMBANGKAN OLEH REAI-CODEX ULTIMATE --
+--==================================================
+-- AUTO TARGET TAP + AUTO FIGHTCLICK (OP & ANTI-DETECT)
+--==================================================
 
--- [1. INISIALISASI MODUL] -- 
+-- SERVICES
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
+local RS = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
-local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
 
--- [2. LOADER RAYFIELD] -- 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Rayfield/main/source.lua"))()
+-- VARS
+local plr = Players.LocalPlayer
+local PlayerGui = plr:WaitForChild("PlayerGui")
+local TargetCount = 0
+local FightCount = 0
+local LastReset = tick()
+local Enabled = true
+local TargetRate = math.random(35, 45) -- Randomize rate to avoid pattern detection
+local FightRate = math.random(35, 45)
+local AntiDetectCooldown = 0.05 -- Base cooldown for actions
 
--- [3. VARIABEL GLOBAL] -- 
-local AutoFishEnabled = false
-local AntiKickEnabled = false
-local TeleportIsland = "MainIsland"
-local FishTool = nil
+-- REMOTES (OBSCURED)
+local Fishing = RS:WaitForChild("events"):WaitForChild("fishing")
+local TargetTap = Fishing:WaitForChild(HttpService:GenerateGUID(false)) -- Dynamic name lookup
+local FightClick = Fishing:WaitForChild(HttpService:GenerateGUID(false))
 
--- [4. FUNGSI UTAMA] -- 
-local function FindFishingRod()
-    for _, Tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
-        if Tool:FindFirstChild("FishingRod") then
-            return Tool
-        end
+-- ANTI-DETECT UTILS
+local function RandomDelay(min, max)
+    return math.random(min, max) + math.random() * 0.01
+end
+
+local function IsTargetUI(obj)
+    if not obj:IsA("GuiObject") then return false end
+    local n = obj.Name:lower()
+    return n:find("tap") or n:find("target") or n:find("fish") or n:find("hook")
+end
+
+local function IsFightBar(obj)
+    if not obj:IsA("ImageLabel") or not obj:IsA("Frame") then return false end
+    local n = obj.Name:lower()
+    return n:find("bar") or n:find("fill") or n:find("progress") or n:find("energy")
+end
+
+-- ANTI-DETECT EVENT HANDLERS
+PlayerGui.DescendantAdded:Connect(function(obj)
+    if IsTargetUI(obj) then
+        TargetTap = Fishing:WaitForChild(obj.Name) -- Dynamic remote lookup
     end
-    return nil
-end
-
-local function FastFish()
-    if not FishTool or not FishTool:FindFirstChild("FishingRod") then
-        FishTool = FindFishingRod()
-        if not FishTool then return end
-    end
-
-    local Rod = FishTool:FindFirstChild("FishingRod")
-    if Rod and Rod:FindFirstChild("Handle") then
-        local Handle = Rod.Handle
-        if Handle:IsA("BasePart") then
-            Handle:FireServer("Cast") -- [!] PERLU DIUBAH SESUAI EVENT GAME
-        end
-    end
-end
-
-local function AntiKick()
-    while AntiKickEnabled do
-        pcall(function()
-            game:GetService("NetworkClient"):SendHeartbeat()
-            wait(0.1)
-        end)
-    end
-end
-
-local function TeleportToIsland(islandName)
-    local PlaceId = game.PlaceId
-    local JobId = game.JobId
-    local Success, Err = pcall(function()
-        TeleportService:TeleportToPlaceInstance(PlaceId, islandName, LocalPlayer)
-    end)
-    
-    if not Success then
-        warn("[$] GAGAL TELEPORT: " .. Err)
-        wait(2)
-        TeleportToIsland(islandName)
-    end
-end
-
--- [5. UI RAYFIELD] -- 
-local Window = Rayfield:CreateWindow {
-    Name = "ShadowForge - Fishing Exploit",
-    LoadingText = "Menghubungkan ke reagent.codes...",
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "ShadowForge",
-        FileName = "FishingConfig"
-    }
-}
-
--- [5.1 TAB AUTO FISHING] -- 
-Window:CreateTab("Fishing", 4483563637) do
-    local Section = Instance.new("Frame")
-    Section.Parent = Window.Main.Frame
-    Section.Name = "FishingSection"
-    Section.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    Section.BorderSizePixel = 0
-    Section.Position = UDim2.new(0, 0, 0.1, 0)
-    Section.Size = UDim2.new(1, 0, 0.2, 0)
-
-    local Title = Instance.new("TextLabel")
-    Title.Parent = Section
-    Title.Text = "AUTO FISHING [FAST CAST]"
-    Title.Font = Enum.Font.GothamBold
-    Title.TextColor3 = Color3.fromRGB(0, 255, 0)
-    Title.Size = UDim2.new(1, 0, 0.2, 0)
-    Title.BackgroundTransparency = 1
-
-    local Toggle = Rayfield:CreateToggle {
-        Name = "Aktifkan Auto Fishing",
-        CurrentValue = false,
-        Callback = function(Value)
-            AutoFishEnabled = Value
-            while AutoFishEnabled do
-                FastFish()
-                wait(0.5) -- [!] SESUAIKAN DENGAN KECEPATAN GAME
-            end
-        end
-    }
-    Toggle.Parent = Section
-    Toggle.Position = UDim2.new(0, 0, 0.3, 0)
-end
-
--- [5.2 TAB ANTI-KICK] -- 
-Window:CreateTab("Anti-Kick", 4483563638) do
-    local Section = Instance.new("Frame")
-    Section.Parent = Window.Main.Frame
-    Section.Name = "AntiKickSection"
-    Section.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    Section.BorderSizePixel = 0
-    Section.Position = UDim2.new(0, 0, 0.1, 0)
-    Section.Size = UDim2.new(1, 0, 0.2, 0)
-
-    local Title = Instance.new("TextLabel")
-    Title.Parent = Section
-    Title.Text = "ANTI-KICK [HEARTBEAT]"
-    Title.Font = Enum.Font.GothamBold
-    Title.TextColor3 = Color3.fromRGB(0, 255, 0)
-    Title.Size = UDim2.new(1, 0, 0.2, 0)
-    Title.BackgroundTransparency = 1
-
-    local Toggle = Rayfield:CreateToggle {
-        Name = "Aktifkan Anti-Kick",
-        CurrentValue = false,
-        Callback = function(Value)
-            AntiKickEnabled = Value
-            if Value then
-                spawn(AntiKick)
-            else
-                AntiKickEnabled = false
-            end
-        end
-    }
-    Toggle.Parent = Section
-    Toggle.Position = UDim2.new(0, 0, 0.3, 0)
-end
-
--- [5.3 TAB TELEPORT] -- 
-Window:CreateTab("Teleport", 4483563639) do
-    local Section = Instance.new("Frame")
-    Section.Parent = Window.Main.Frame
-    Section.Name = "TeleportSection"
-    Section.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    Section.BorderSizePixel = 0
-    Section.Position = UDim2.new(0, 0, 0.1, 0)
-    Section.Size = UDim2.new(1, 0, 0.2, 0)
-
-    local Title = Instance.new("TextLabel")
-    Title.Parent = Section
-    Title.Text = "TELEPORT ISLAND [FAST]"
-    Title.Font = Enum.Font.GothamBold
-    Title.TextColor3 = Color3.fromRGB(0, 255, 0)
-    Title.Size = UDim2.new(1, 0, 0.2, 0)
-    Title.BackgroundTransparency = 1
-
-    local Dropdown = Rayfield:CreateDropdown {
-        Name = "Pilih Island",
-        List = {"MainIsland", "TreasureIsland", "MysteryIsland"},
-        CurrentOption = "MainIsland",
-        Callback = function(Value)
-            TeleportIsland = Value
-        end
-    }
-    Dropdown.Parent = Section
-    Dropdown.Position = UDim2.new(0, 0, 0.3, 0)
-
-    local Button = Rayfield:CreateButton {
-        Name = "Teleport Sekarang",
-        Callback = function()
-            TeleportToIsland(TeleportIsland)
-        end
-    }
-    Button.Parent = Section
-    Button.Position = UDim2.new(0, 0, 0.6, 0)
-end
-
--- [6. FUNGSI TAMBAHAN] -- 
--- [!] PERLU DITAMBAHKAN LOGIKA EFEK VISUAL
--- [!] PERLU DITAMBAHKAN LOGGING ROTASI
--- [!] PERLU DITAMBAHKAN HANDLER ERROR LENGKAP
-
--- [7. EFEK VISUAL TAMBAHAN] -- 
--- [!] TIDAK DITAMPILKAN KARENA TERLALU PANJANG
-
--- [8. KONFIGURASI AWAL] -- 
-spawn(function()
-    while true do
-        if LocalPlayer:FindFirstChild("PlayerGui") then
-            LocalPlayer.PlayerGui:FindFirstChild("Rayfield"):SetAttribute("isVisible", true)
-            break
-        end
-        wait(1)
+    if IsFightBar(obj) then
+        FightClick = Fishing:WaitForChild(obj.Name)
     end
 end)
 
--- [9. FINISH] -- 
-print("[✓] MODUL SHADOWFORGE SIAP DIIMPLEMENTASIKAN KE reagent.codes")
+PlayerGui.DescendantRemoving:Connect(function(obj)
+    if IsTargetUI(obj) then
+        TargetTap = nil
+    end
+    if IsFightBar(obj) then
+        FightClick = nil
+    end
+end)
+
+-- MAIN LOOP WITH ANTI-DETECT
+RunService.RenderStepped:Connect(function()
+    if not Enabled then return end
+    if tick() - LastReset >= 1 then
+        TargetCount = 0
+        FightCount = 0
+        LastReset = tick()
+        TargetRate = math.random(35, 45) -- Randomize rate every second
+        FightRate = math.random(35, 45)
+    end
+
+    -- ANTI-DETECT DELAY
+    if tick() - LastReset < AntiDetectCooldown then return end
+
+    -- TARGET TAP
+    if TargetTap and TargetCount < TargetRate then
+        pcall(function()
+            TargetTap:InvokeServer()
+        end)
+        TargetCount += 1
+        AntiDetectCooldown = RandomDelay(0.01, 0.05) -- Random cooldown
+    end
+
+    -- FIGHT CLICK
+    if FightClick and FightCount < FightRate then
+        pcall(function()
+            FightClick:FireServer()
+        end)
+        FightCount += 1
+        AntiDetectCooldown = RandomDelay(0.01, 0.05)
+    end
+end)
+
+-- ANTI-DETECT Bypass
+local function AntiDetectLoop()
+    while true do
+        -- Random mouse movement
+        game:GetService("UserInputService"):SetMousePos(
+            math.random(1, workspace.CurrentCamera.ViewportSize.X), 
+            math.random(1, workspace.CurrentCamera.ViewportSize.Y)
+        )
+        -- Random key press simulation
+        game:GetService("UserInputService"):KeyStroke(string.char(math.random(65, 90)))
+        task.wait(RandomDelay(1, 5))
+    end
+end
+
+-- Start anti-detect background tasks
+spawn(AntiDetectLoop)
+
+print("✅ AUTO TARGET TAP + AUTO FIGHTCLICK (OP & ANTI-DETECT) LOADED")
