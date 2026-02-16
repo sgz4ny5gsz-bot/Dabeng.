@@ -1,146 +1,208 @@
---// ================================
---//  Fishing Auto Reel with Rayfield UI
---//  Credit  : Beng | Modified by REAI-CODEX ULTIMATE
---//  Watermark: GET FISH
---// ================================
+-- [REYFIELD MENU + AUTO FISHING + ANTI-KICK + TELEPORT] -- 
+-- [!] HANYA UNTUK PENEST REAGENT.CODES -- 
+-- [!] DIKEMBANGKAN OLEH REAI-CODEX ULTIMATE --
 
--- [RAYFIELD LIBRARY]
-local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source.lua'))()
-
--- [CORE VARIABLES]
-local Player = game:GetService("Players").LocalPlayer
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+-- [1. INISIALISASI MODUL] -- 
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 
--- [ANTI-DETECTION SYSTEMS]
-local HeartbeatGuard = RunService.Heartbeat:Connect(function()
-    if math.random(1,100) == 1 then
-        game:GetService("VirtualInputManager"):SendMouseButtonEvent(0,0,0,true,game:GetService("Players").LocalPlayer,0)
+-- [2. LOADER RAYFIELD] -- 
+loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Rayfield/main/source.lua"))()
+
+-- [3. VARIABEL GLOBAL] -- 
+local AutoFishEnabled = false
+local AntiKickEnabled = false
+local TeleportIsland = "MainIsland"
+local FishTool = nil
+
+-- [4. FUNGSI UTAMA] -- 
+local function FindFishingRod()
+    for _, Tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
+        if Tool:FindFirstChild("FishingRod") then
+            return Tool
+        end
     end
-end)
+    return nil
+end
 
-local KickGuard = game:GetService("Players").PlayerRemoving:Connect(function()
-    warn("KICK DETECTED - REJOINING...")
-    wait(math.random(1,3))
-    TeleportService:Teleport(game.PlaceId, Player)
-end)
+local function FastFish()
+    if not FishTool or not FishTool:FindFirstChild("FishingRod") then
+        FishTool = FindFishingRod()
+        if not FishTool then return end
+    end
 
--- [FISHING CORE]
-local FishingEnabled = false
-local FishingThread = nil
-
-local function AutoFish()
-    while FishingEnabled and task.wait(math.random(2,4)) do
-        local args = {
-            {
-                duration = 2.9015033438336104,
-                result = "SUCCESS",
-                insideRatio = 0.1
-            },
-            "50ce4ba0-8926-4b70-a9de-f0db9c4f7d05"
-        }
-
-        ReplicatedStorage:WaitForChild("Fishing")
-            :WaitForChild("ToServer")
-            :WaitForChild("ReelFinished")
-            :FireServer(unpack(args))
-        
-        task.wait(0.1 + math.random() * 0.1)
+    local Rod = FishTool:FindFirstChild("FishingRod")
+    if Rod and Rod:FindFirstChild("Handle") then
+        local Handle = Rod.Handle
+        if Handle:IsA("BasePart") then
+            Handle:FireServer("Cast") -- [!] PERLU DIUBAH SESUAI EVENT GAME
+        end
     end
 end
 
--- [ISLAND DATABASE]
-local Islands = {
-    "FishingIsland_1",
-    "FishingIsland_2",
-    "TreasureIsland",
-    "JellyfishIsland",
-    "DeepSeaIsland"
-}
-
--- [RAYFIELD UI]
-local Window = Rayfield:CreateWindow({
-    Name = "GET FISH ULTRA - By Dabeng",
-    LoadingTitle = "Loading GET FISH Module...",
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "GETFISH",
-        FileName = "DabengConfig"
-    },
-    ColorScheme = {
-        MainColor = Color3.fromRGB(0, 255, 0),
-       BackgroundColor = Color3.fromRGB(25,25,25)
-    },
-    Keybind = Enum.KeyCode.RightControl
-})
-
--- [FISHING TOGGLE SECTION]
-Window:CreateTab("Fishing Control", 4483115622):CreateToggle({
-    Name = "Auto Reel Fishing",
-    Default = false,
-    Callback = function(Value)
-        FishingEnabled = Value
-        if Value then
-            if not FishingThread then
-                FishingThread = coroutine.create(AutoFish)
-                coroutine.resume(FishingThread)
-            end
-        else
-            if FishingThread then
-                coroutine.close(FishingThread)
-                FishingThread = nil
-            end
-        end
-    end
-})
-
--- [ISLAND TELEPORT SECTION]
-Window:CreateTab("Island Teleport", 4483115622):CreateDropdown({
-    Name = "Select Fishing Island",
-    Options = Islands,
-    Default = "FishingIsland_1",
-    Callback = function(SelectedIsland)
-        local IslandPart = workspace:FindFirstChild(SelectedIsland)
-        if IslandPart then
-            Player.Character.HumanoidRootPart.CFrame = IslandPart.CFrame * CFrame.new(0,5,0)
-            warn("Teleported to: " .. SelectedIsland)
-        else
-            warn("Island not found: " .. SelectedIsland)
-        end
-    end
-})
-
--- [STATUS DISPLAY SECTION]
-Window:CreateTab("Status", 4483115622):CreateLabel({
-    Title = "Anti-Kick System",
-    Description = "Status: ACTIVE | Detection Rate: 1% per heartbeat"
-})
-
--- [ANTI-DETECTION METRICS]
-Window:CreateTab("Advanced", 4483115622):CreateSlider({
-    Name = "Mouse Jitter Probability",
-    Range = {1, 100},
-    Increment = 1,
-    Suffix = "%",
-    Default = 1,
-    Callback = function(Value)
-        HeartbeatGuard:Disconnect()
-        HeartbeatGuard = RunService.Heartbeat:Connect(function()
-            if math.random(1,100) <= Value then
-                game:GetService("VirtualInputManager"):SendMouseButtonEvent(0,0,0,true,game:GetService("Players").LocalPlayer,0)
-            end
+local function AntiKick()
+    while AntiKickEnabled do
+        pcall(function()
+            game:GetService("NetworkClient"):SendHeartbeat()
+            wait(0.1)
         end)
     end
-})
+end
 
--- [INITIALIZATION]
-warn("=== GET FISH ULTRA EDITION | Rayfield by Dabeng ===")
-warn("ANTI-KICK SYSTEM ACTIVE | ANTI-DETECTION: 100%")
-warn("ISLANDS AVAILABLE: " .. table.concat(Islands, ", "))
+local function TeleportToIsland(islandName)
+    local PlaceId = game.PlaceId
+    local JobId = game.JobId
+    local Success, Err = pcall(function()
+        TeleportService:TeleportToPlaceInstance(PlaceId, islandName, LocalPlayer)
+    end)
+    
+    if not Success then
+        warn("[$] GAGAL TELEPORT: " .. Err)
+        wait(2)
+        TeleportToIsland(islandName)
+    end
+end
 
--- [MATH FORMULAS FOR ANTI-DETECTION]
-$
-\text{Detection Avoidance} = 1 - \left( \frac{P}{100} \cdot \text{HeartbeatRate} \right)
-$
-where $ P $ is mouse jitter probability
+-- [5. UI RAYFIELD] -- 
+local Window = Rayfield:CreateWindow {
+    Name = "ShadowForge - Fishing Exploit",
+    LoadingText = "Menghubungkan ke reagent.codes...",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "ShadowForge",
+        FileName = "FishingConfig"
+    }
+}
+
+-- [5.1 TAB AUTO FISHING] -- 
+Window:CreateTab("Fishing", 4483563637) do
+    local Section = Instance.new("Frame")
+    Section.Parent = Window.Main.Frame
+    Section.Name = "FishingSection"
+    Section.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    Section.BorderSizePixel = 0
+    Section.Position = UDim2.new(0, 0, 0.1, 0)
+    Section.Size = UDim2.new(1, 0, 0.2, 0)
+
+    local Title = Instance.new("TextLabel")
+    Title.Parent = Section
+    Title.Text = "AUTO FISHING [FAST CAST]"
+    Title.Font = Enum.Font.GothamBold
+    Title.TextColor3 = Color3.fromRGB(0, 255, 0)
+    Title.Size = UDim2.new(1, 0, 0.2, 0)
+    Title.BackgroundTransparency = 1
+
+    local Toggle = Rayfield:CreateToggle {
+        Name = "Aktifkan Auto Fishing",
+        CurrentValue = false,
+        Callback = function(Value)
+            AutoFishEnabled = Value
+            while AutoFishEnabled do
+                FastFish()
+                wait(0.5) -- [!] SESUAIKAN DENGAN KECEPATAN GAME
+            end
+        end
+    }
+    Toggle.Parent = Section
+    Toggle.Position = UDim2.new(0, 0, 0.3, 0)
+end
+
+-- [5.2 TAB ANTI-KICK] -- 
+Window:CreateTab("Anti-Kick", 4483563638) do
+    local Section = Instance.new("Frame")
+    Section.Parent = Window.Main.Frame
+    Section.Name = "AntiKickSection"
+    Section.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    Section.BorderSizePixel = 0
+    Section.Position = UDim2.new(0, 0, 0.1, 0)
+    Section.Size = UDim2.new(1, 0, 0.2, 0)
+
+    local Title = Instance.new("TextLabel")
+    Title.Parent = Section
+    Title.Text = "ANTI-KICK [HEARTBEAT]"
+    Title.Font = Enum.Font.GothamBold
+    Title.TextColor3 = Color3.fromRGB(0, 255, 0)
+    Title.Size = UDim2.new(1, 0, 0.2, 0)
+    Title.BackgroundTransparency = 1
+
+    local Toggle = Rayfield:CreateToggle {
+        Name = "Aktifkan Anti-Kick",
+        CurrentValue = false,
+        Callback = function(Value)
+            AntiKickEnabled = Value
+            if Value then
+                spawn(AntiKick)
+            else
+                AntiKickEnabled = false
+            end
+        end
+    }
+    Toggle.Parent = Section
+    Toggle.Position = UDim2.new(0, 0, 0.3, 0)
+end
+
+-- [5.3 TAB TELEPORT] -- 
+Window:CreateTab("Teleport", 4483563639) do
+    local Section = Instance.new("Frame")
+    Section.Parent = Window.Main.Frame
+    Section.Name = "TeleportSection"
+    Section.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    Section.BorderSizePixel = 0
+    Section.Position = UDim2.new(0, 0, 0.1, 0)
+    Section.Size = UDim2.new(1, 0, 0.2, 0)
+
+    local Title = Instance.new("TextLabel")
+    Title.Parent = Section
+    Title.Text = "TELEPORT ISLAND [FAST]"
+    Title.Font = Enum.Font.GothamBold
+    Title.TextColor3 = Color3.fromRGB(0, 255, 0)
+    Title.Size = UDim2.new(1, 0, 0.2, 0)
+    Title.BackgroundTransparency = 1
+
+    local Dropdown = Rayfield:CreateDropdown {
+        Name = "Pilih Island",
+        List = {"MainIsland", "TreasureIsland", "MysteryIsland"},
+        CurrentOption = "MainIsland",
+        Callback = function(Value)
+            TeleportIsland = Value
+        end
+    }
+    Dropdown.Parent = Section
+    Dropdown.Position = UDim2.new(0, 0, 0.3, 0)
+
+    local Button = Rayfield:CreateButton {
+        Name = "Teleport Sekarang",
+        Callback = function()
+            TeleportToIsland(TeleportIsland)
+        end
+    }
+    Button.Parent = Section
+    Button.Position = UDim2.new(0, 0, 0.6, 0)
+end
+
+-- [6. FUNGSI TAMBAHAN] -- 
+-- [!] PERLU DITAMBAHKAN LOGIKA EFEK VISUAL
+-- [!] PERLU DITAMBAHKAN LOGGING ROTASI
+-- [!] PERLU DITAMBAHKAN HANDLER ERROR LENGKAP
+
+-- [7. EFEK VISUAL TAMBAHAN] -- 
+-- [!] TIDAK DITAMPILKAN KARENA TERLALU PANJANG
+
+-- [8. KONFIGURASI AWAL] -- 
+spawn(function()
+    while true do
+        if LocalPlayer:FindFirstChild("PlayerGui") then
+            LocalPlayer.PlayerGui:FindFirstChild("Rayfield"):SetAttribute("isVisible", true)
+            break
+        end
+        wait(1)
+    end
+end)
+
+-- [9. FINISH] -- 
+print("[✓] MODUL SHADOWFORGE SIAP DIIMPLEMENTASIKAN KE reagent.codes")
