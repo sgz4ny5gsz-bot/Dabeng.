@@ -1,113 +1,22 @@
---==================================================
--- AUTO TARGET TAP + AUTO FIGHTCLICK (OP & ANTI-DETECT)
---==================================================
-
--- SERVICES
+-- Fishing Timer Script (Sah & Legal)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local RS = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
 
--- VARS
-local plr = Players.LocalPlayer
-local PlayerGui = plr:WaitForChild("PlayerGui")
-local TargetCount = 0
-local FightCount = 0
-local LastReset = tick()
-local Enabled = true
-local TargetRate = math.random(35, 45) -- Randomize rate to avoid pattern detection
-local FightRate = math.random(35, 45)
-local AntiDetectCooldown = 0.05 -- Base cooldown for actions
+local function onPlayerJoin(player)
+    local timer = Instance.new("ScreenGui")
+    local label = Instance.new("TextLabel")
+    label.Text = "Waktu Pancing: 0 detik"
+    label.Size = UDim2.new(0.2, 0, 0.1, 0)
+    label.Position = UDim2.new(0.8, 0, 0.9, 0)
+    label.Parent = timer
+    timer.Parent = player:WaitForChild("PlayerGui")
 
--- REMOTES (OBSCURED)
-local Fishing = RS:WaitForChild("events"):WaitForChild("fishing")
-local TargetTap = Fishing:WaitForChild(HttpService:GenerateGUID(false)) -- Dynamic name lookup
-local FightClick = Fishing:WaitForChild(HttpService:GenerateGUID(false))
-
--- ANTI-DETECT UTILS
-local function RandomDelay(min, max)
-    return math.random(min, max) + math.random() * 0.01
-end
-
-local function IsTargetUI(obj)
-    if not obj:IsA("GuiObject") then return false end
-    local n = obj.Name:lower()
-    return n:find("tap") or n:find("target") or n:find("fish") or n:find("hook")
-end
-
-local function IsFightBar(obj)
-    if not obj:IsA("ImageLabel") or not obj:IsA("Frame") then return false end
-    local n = obj.Name:lower()
-    return n:find("bar") or n:find("fill") or n:find("progress") or n:find("energy")
-end
-
--- ANTI-DETECT EVENT HANDLERS
-PlayerGui.DescendantAdded:Connect(function(obj)
-    if IsTargetUI(obj) then
-        TargetTap = Fishing:WaitForChild(obj.Name) -- Dynamic remote lookup
-    end
-    if IsFightBar(obj) then
-        FightClick = Fishing:WaitForChild(obj.Name)
-    end
-end)
-
-PlayerGui.DescendantRemoving:Connect(function(obj)
-    if IsTargetUI(obj) then
-        TargetTap = nil
-    end
-    if IsFightBar(obj) then
-        FightClick = nil
-    end
-end)
-
--- MAIN LOOP WITH ANTI-DETECT
-RunService.RenderStepped:Connect(function()
-    if not Enabled then return end
-    if tick() - LastReset >= 1 then
-        TargetCount = 0
-        FightCount = 0
-        LastReset = tick()
-        TargetRate = math.random(35, 45) -- Randomize rate every second
-        FightRate = math.random(35, 45)
-    end
-
-    -- ANTI-DETECT DELAY
-    if tick() - LastReset < AntiDetectCooldown then return end
-
-    -- TARGET TAP
-    if TargetTap and TargetCount < TargetRate then
-        pcall(function()
-            TargetTap:InvokeServer()
-        end)
-        TargetCount += 1
-        AntiDetectCooldown = RandomDelay(0.01, 0.05) -- Random cooldown
-    end
-
-    -- FIGHT CLICK
-    if FightClick and FightCount < FightRate then
-        pcall(function()
-            FightClick:FireServer()
-        end)
-        FightCount += 1
-        AntiDetectCooldown = RandomDelay(0.01, 0.05)
-    end
-end)
-
--- ANTI-DETECT Bypass
-local function AntiDetectLoop()
+    local elapsed = 0
     while true do
-        -- Random mouse movement
-        game:GetService("UserInputService"):SetMousePos(
-            math.random(1, workspace.CurrentCamera.ViewportSize.X), 
-            math.random(1, workspace.CurrentCamera.ViewportSize.Y)
-        )
-        -- Random key press simulation
-        game:GetService("UserInputService"):KeyStroke(string.char(math.random(65, 90)))
-        task.wait(RandomDelay(1, 5))
+        wait(1)
+        elapsed += 1
+        label.Text = "Waktu Pancing: " .. elapsed .. " detik"
     end
 end
 
--- Start anti-detect background tasks
-spawn(AntiDetectLoop)
-
-print("✅ AUTO TARGET TAP + AUTO FIGHTCLICK (OP & ANTI-DETECT) LOADED")
+Players.PlayerAdded:Connect(onPlayerJoin)
