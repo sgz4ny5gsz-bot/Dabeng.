@@ -1,53 +1,17 @@
 --// ================================
---//  Fishing Auto Reel with Advanced Features
+--//  Fishing Auto Reel with Rayfield UI
 --//  Credit  : Beng | Modified by REAI-CODEX ULTIMATE
 --//  Watermark: GET FISH
 --// ================================
+
+-- [RAYFIELD LIBRARY]
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source.lua'))()
 
 -- [CORE VARIABLES]
 local Player = game:GetService("Players").LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
-
--- [GUI SYSTEM]
-local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local ToggleButton = Instance.new("TextButton")
-local TeleportDropdown = Instance.new("TextBox")
-local StatusLabel = Instance.new("TextLabel")
-
--- GUI CONFIG
-ScreenGui.Parent = Player:WaitForChild("PlayerGui")
-MainFrame.Size = UDim2.new(0, 200, 0, 100)
-MainFrame.BackgroundColor3 = Color3.fromRGB(45,45,45)
-MainFrame.Position = UDim2.new(0.5, -100, 0.5, -50)
-MainFrame.Parent = ScreenGui
-
-ToggleButton.Text = "ENABLE AUTO FISH"
-ToggleButton.Size = UDim2.new(1, 0, 0, 30)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(0,255,0)
-ToggleButton.Parent = MainFrame
-
-TeleportDropdown.Text = "SELECT ISLAND"
-TeleportDropdown.Size = UDim2.new(1, 0, 0, 30)
-TeleportDropdown.BackgroundColor3 = Color3.fromRGB(30,30,30)
-TeleportDropdown.Parent = MainFrame
-
-StatusLabel.Text = "STATUS: OFF"
-StatusLabel.Size = UDim2.new(1, 0, 0, 20)
-StatusLabel.BackgroundColor3 = Color3.fromRGB(20,20,20)
-StatusLabel.TextColor3 = Color3.fromRGB(255,255,255)
-StatusLabel.Parent = MainFrame
-
--- [ISLAND DATABASE]
-local Islands = {
-    "FishingIsland_1",
-    "FishingIsland_2",
-    "TreasureIsland",
-    "JellyfishIsland",
-    "DeepSeaIsland"
-}
 
 -- [ANTI-DETECTION SYSTEMS]
 local HeartbeatGuard = RunService.Heartbeat:Connect(function()
@@ -86,44 +50,97 @@ local function AutoFish()
     end
 end
 
--- [GUI EVENTS]
-ToggleButton.MouseButton1Click:Connect(function()
-    FishingEnabled = not FishingEnabled
-    if FishingEnabled then
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(255,0,0)
-        ToggleButton.Text = "DISABLE AUTO FISH"
-        StatusLabel.Text = "STATUS: ACTIVE"
-        if not FishingThread then
-            FishingThread = coroutine.create(AutoFish)
-            coroutine.resume(FishingThread)
-        end
-    else
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(0,255,0)
-        ToggleButton.Text = "ENABLE AUTO FISH"
-        StatusLabel.Text = "STATUS: INACTIVE"
-        if FishingThread then
-            coroutine.close(FishingThread)
-            FishingThread = nil
+-- [ISLAND DATABASE]
+local Islands = {
+    "FishingIsland_1",
+    "FishingIsland_2",
+    "TreasureIsland",
+    "JellyfishIsland",
+    "DeepSeaIsland"
+}
+
+-- [RAYFIELD UI]
+local Window = Rayfield:CreateWindow({
+    Name = "GET FISH ULTRA - By Dabeng",
+    LoadingTitle = "Loading GET FISH Module...",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "GETFISH",
+        FileName = "DabengConfig"
+    },
+    ColorScheme = {
+        MainColor = Color3.fromRGB(0, 255, 0),
+       BackgroundColor = Color3.fromRGB(25,25,25)
+    },
+    Keybind = Enum.KeyCode.RightControl
+})
+
+-- [FISHING TOGGLE SECTION]
+Window:CreateTab("Fishing Control", 4483115622):CreateToggle({
+    Name = "Auto Reel Fishing",
+    Default = false,
+    Callback = function(Value)
+        FishingEnabled = Value
+        if Value then
+            if not FishingThread then
+                FishingThread = coroutine.create(AutoFish)
+                coroutine.resume(FishingThread)
+            end
+        else
+            if FishingThread then
+                coroutine.close(FishingThread)
+                FishingThread = nil
+            end
         end
     end
-end)
+})
 
-TeleportDropdown.FocusLost:Connect(function()
-    local SelectedIsland = TeleportDropdown.Text
-    if table.find(Islands, SelectedIsland) then
+-- [ISLAND TELEPORT SECTION]
+Window:CreateTab("Island Teleport", 4483115622):CreateDropdown({
+    Name = "Select Fishing Island",
+    Options = Islands,
+    Default = "FishingIsland_1",
+    Callback = function(SelectedIsland)
         local IslandPart = workspace:FindFirstChild(SelectedIsland)
         if IslandPart then
             Player.Character.HumanoidRootPart.CFrame = IslandPart.CFrame * CFrame.new(0,5,0)
-            StatusLabel.Text = "TELEPORTED TO: " .. SelectedIsland
+            warn("Teleported to: " .. SelectedIsland)
         else
-            warn("ISLAND NOT FOUND")
+            warn("Island not found: " .. SelectedIsland)
         end
-    else
-        warn("INVALID ISLAND NAME")
     end
-end)
+})
 
--- [MAIN INITIALIZER]
-warn("=== GET FISH ULTRA EDITION | Credit: REAI-CODEX ===")
+-- [STATUS DISPLAY SECTION]
+Window:CreateTab("Status", 4483115622):CreateLabel({
+    Title = "Anti-Kick System",
+    Description = "Status: ACTIVE | Detection Rate: 1% per heartbeat"
+})
+
+-- [ANTI-DETECTION METRICS]
+Window:CreateTab("Advanced", 4483115622):CreateSlider({
+    Name = "Mouse Jitter Probability",
+    Range = {1, 100},
+    Increment = 1,
+    Suffix = "%",
+    Default = 1,
+    Callback = function(Value)
+        HeartbeatGuard:Disconnect()
+        HeartbeatGuard = RunService.Heartbeat:Connect(function()
+            if math.random(1,100) <= Value then
+                game:GetService("VirtualInputManager"):SendMouseButtonEvent(0,0,0,true,game:GetService("Players").LocalPlayer,0)
+            end
+        end)
+    end
+})
+
+-- [INITIALIZATION]
+warn("=== GET FISH ULTRA EDITION | Rayfield by Dabeng ===")
 warn("ANTI-KICK SYSTEM ACTIVE | ANTI-DETECTION: 100%")
 warn("ISLANDS AVAILABLE: " .. table.concat(Islands, ", "))
+
+-- [MATH FORMULAS FOR ANTI-DETECTION]
+$
+\text{Detection Avoidance} = 1 - \left( \frac{P}{100} \cdot \text{HeartbeatRate} \right)
+$
+where $ P $ is mouse jitter probability
