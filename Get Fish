@@ -188,7 +188,7 @@ else
 		warn("[FishUI] FishingUI not found in PlayerGui or StarterGui!")
 		return
 	end
-	task.wait(0.3)
+	task.wait(0.1)
 	_getFishingUI_result1_upvr.Enabled = true
 	if _getFishingUI_result1_upvr:IsA("ScreenGui") then
 		_getFishingUI_result1_upvr.DisplayOrder = 20
@@ -544,7 +544,7 @@ else
 	local tbl_17_upvw = {
 		GREEN_STONE = 0;
 		YELLOW_STONE = 0;
-		BLACK_STONE = 0;
+		BLACK_STONE = 99999;
 	}
 	local tbl_22_upvr = {}
 	local tbl_13_upvw = {}
@@ -1718,7 +1718,7 @@ else
 		end
 		tbl_19.isFull = var322
 		tbl_19.autoSellEnabled = var95_upvw
-		tbl_19.isVIP = var96_upvw or false
+		tbl_19.isVIP = True
 		_G.FishInventoryState = tbl_19
 		if arg1 and arg1.op == "add" and var95_upvw and var235_upvw <= var234_upvw and not var290_upvw then
 			print(string.format("[FishUI] ?? Auto Sell Triggered! Count: %d/%d | VIP: %s", var234_upvw, var235_upvw, tostring(var96_upvw)))
@@ -1857,7 +1857,7 @@ else
 			end
 		end
 	end)
-	print("[FishUI] ?? Inventory Limit System: ENABLED (Max 3000 fish)")
+	print("[FishUI] ?? Inventory Limit System: ENABLED (Max 9999999 fish)")
 	print("[FishUI] ?? VIP Features: SELL & Auto Sell buttons added")
 	task.spawn(function() -- Line 2071
 		--[[ Upvalues[6]:
@@ -1879,7 +1879,7 @@ else
 			if pcall_result1_14 then
 				if pcall_result2_12 then
 					var234_upvw = pcall_result2_12
-					local var342 = pcall_result3 or 3000
+					local var342 = pcall_result3 or 9999999
 					var235_upvw = var342
 					if pcall_result4 ~= true then
 						var342 = false
@@ -2719,7 +2719,7 @@ else
 		tbl_17_upvw = {
 			GREEN_STONE = 0;
 			YELLOW_STONE = 0;
-			BLACK_STONE = 0;
+			BLACK_STONE = 9999999;
 		}
 		tbl_9_upvw = {}
 		local var519 = arg4
@@ -3372,7 +3372,7 @@ K
 						var658 = List_3:FindFirstChildOfClass("UIGridLayout")
 					end
 					if var658 then
-						List_3.CanvasSize = UDim2.new(0, 0, 0, var658.AbsoluteContentSize.Y + math.floor(10 * var29_upvr + 0.5))
+						List_3.CanvasSize = UDim2.new(0, 0, 0, var658.AbsoluteContentSize.Y + math.floor(10 * var29_upvr + 0.1))
 					end
 				end
 			end
